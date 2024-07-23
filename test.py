@@ -1,31 +1,25 @@
-import chromadb
-from langchain_chroma import Chroma
-from langchain_community.embeddings.sentence_transformer import (
-    SentenceTransformerEmbeddings,
-)
+from core import *
+load_dotenv()
+
+
+raw_documents = TextLoader('temporary_data.txt').load()
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1024, chunk_overlap = 100)
+
+docs = text_splitter.split_documents(raw_documents)
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 persistent_client = chromadb.PersistentClient()
-collection = persistent_client.get_or_create_collection("collection_name")
-collection.add(ids=["1", "2", "3"], documents=["a", "b", "c"])
-# create the open-source embedding function
-embedding_function = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
-
+collection = persistent_client.get_or_create_collection("Law_db3")
 langchain_chroma = Chroma(
-    client=persistent_client,
-    collection_name="collection_name",
-    embedding_function=embedding_function,
+        client=persistent_client,
+        collection_name="Law_db3",
+        embedding_function=embeddings,
+)
+retriever = langchain_chroma.as_retriever (
+        search_type="similarity",
+        search_kwargs={"k": 3},
 )
 
-print("There are", langchain_chroma._collection.count(), "in the collection")
-
-collection.add(ids=["4"], documents=["d"])
-
-print("There are", langchain_chroma._collection.count(), "in the collection")
-
-langchain_chroma = Chroma(
-    client=persistent_client,
-    collection_name="collection_name",
-    embedding_function=embedding_function,
-)
-
-print("There are", langchain_chroma._collection.count(), "in the collection")
+print(retriever.invoke("Mũ bảo hiểm"))

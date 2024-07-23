@@ -4,3 +4,5 @@
 .chainlit
 /node_modules
 *.json
+__*
+*.txt
