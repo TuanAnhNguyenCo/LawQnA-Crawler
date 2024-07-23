@@ -33,27 +33,29 @@ async def on_message(message: cl.Message):
 @cl.step()
 def load_temporary_file(user_question, collection, langchain_chroma):
 
-    crawl_data(user_question,max_page = 3)
+    respone = crawl_data(user_question,max_page = 3)
+    if respone != 'Not_Found':
+        raw_documents = TextLoader('data/temporal_data.txt').load()
 
-    raw_documents = TextLoader('data/temporal_data.txt').load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1024, chunk_overlap = 100)
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1024, chunk_overlap = 100)
+        docs = text_splitter.split_documents(raw_documents)
 
-    docs = text_splitter.split_documents(raw_documents)
+        current_id = langchain_chroma._collection.count() + 1
 
-    current_id = langchain_chroma._collection.count() + 1
+        collection.add(
+            documents=[doc.page_content for doc in docs],
+            ids = [str(i+current_id) for i in range(len(docs))],
+        )
 
-    collection.add(
-        documents=[doc.page_content for doc in docs],
-        ids = [str(i+current_id) for i in range(len(docs))],
-    )
+    
+        last_id = langchain_chroma._collection.count()
 
-   
-    last_id = langchain_chroma._collection.count()
-
-    #remove temporal data file
-    os.remove('data/temporal_data.txt')
-    return current_id, last_id
+        #remove temporal data file
+        os.remove('data/temporal_data.txt')
+        return current_id, last_id
+    else:
+        return None, None
 
    
     
@@ -64,10 +66,13 @@ def get_legal_answer(user_question):
     collection = cl.user_session.get("collection")
     langchain_chroma = cl.user_session.get("langchain_chroma") 
 
+    user_question = reformat_query(llm,user_question)
+
     answer = query(user_question,llm,retriever)
     if answer == "Tôi không biết.":
         current_id, last_id = load_temporary_file(user_question, collection, langchain_chroma)
-        answer = query(user_question,llm,retriever,temporary = True,collection = collection,id = [current_id, last_id])
+        if current_id is not None:
+            answer = query(user_question,llm,retriever,temporary = True,collection = collection,id = [current_id, last_id])
 
     return answer
 

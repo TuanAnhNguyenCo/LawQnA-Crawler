@@ -7,6 +7,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import os
+from langchain import PromptTemplate
+from langchain.chains import LLMChain
 from dotenv import load_dotenv
 import cohere
 load_dotenv()
@@ -65,6 +67,24 @@ def load_and_create_embeddings(file_url = "data/law.txt",top_k = 6,
 def load_llm(model_name = "gpt-4o-mini-2024-07-18"):
     llm = ChatOpenAI(model=model_name)
     return llm
+
+def reformat_query(llm,question):
+    template = """
+        Bạn là một trợ lý AI hữu ích. Bạn hãy format lại câu hỏi sau để tôi có thể tìm kiếm được thông tin chứa câu trả lời trên website.
+        Trả lời ngắn gọn dễ hiểu không dài dòng lan man. Chỉ trả lời câu hỏi đã được format.
+        Câu hỏi: {question}
+        Trả lời:
+        """
+
+    prompt = PromptTemplate(
+        input_variables=["question"],
+        template=template,
+    )
+    chain = LLMChain(llm=llm, prompt=prompt)
+    response = chain.run(question)
+
+    return response
+
 
 def query(USER_QUESTION,llm,retriever,temporary = False,collection = None,id = None):
     template =  """

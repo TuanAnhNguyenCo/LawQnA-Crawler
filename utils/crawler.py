@@ -40,16 +40,20 @@ def search_google(query):
 def crawl_data(query,max_page = 5):
     text = []
     search_results = search_google(query)
-    for result in search_results["organic_results"][:max_page]:
-        link = result['link']
-        try:
-            text += get_webpage_info(link) 
-        except:
-            pass
+    try:
+        for result in search_results["organic_results"][:max_page]:
+            link = result['link']
+            try:
+                text += get_webpage_info(link) 
+            except:
+                pass
+   
 
-    # save data to temporary_file.txt
-    if len(text) != 0:
-        with open('data/temporal_data.txt','w+') as f:
-            f.write(" ".join(text))
-
+        # save data to temporary_file.txt
+        if len(text) != 0:
+            with open('data/temporal_data.txt','w+') as f:
+                f.write(" ".join(text))
+        return None
+    except:
+        return 'Not_Found'
 
