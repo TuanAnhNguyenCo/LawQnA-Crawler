@@ -13,4 +13,17 @@ The system leverages a combination of cutting-edge technologies:
 
 # Pipeline Overview
 
+1. The user's query is input into the system, and it's embedded to search for similar chunks of information within the database.
+2. Ranked results from the similarity search step are re-ranked through cohere API
+3. The re-ranked results are passed to the LLM, which assesses whether there's enough information to answer the query.
+4. If there's enough data, the LLM generates the final output and presents it to the user.
+5. If there isn't enough information, new data is crawled from external sources.
+6. The crawled data is chunked and embedded before being added to the database.
+7. The similarity search is repeated with the updated database.
+8. The search results are re-ranked
+9. Redundant information from crawling is removed from the database and only save top-k chunks most relevant to the query.
+10. Re-ranked results are passed to LLM and the final output is generated and presented to the user.
+
+[![Pipeline](pipeline.png)]
+
 
