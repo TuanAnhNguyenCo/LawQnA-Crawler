@@ -1,0 +1,6 @@
+.env
+/chroma
+/content
+.chainlit
+/node_modules
+*.json
