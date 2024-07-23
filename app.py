@@ -1,7 +1,7 @@
 import chainlit as cl 
 import requests
-from core import *
-from crawl import *
+from utils.core import *
+from utils.crawler import *
 
 
 
@@ -11,15 +11,12 @@ async def on_chat_start():
     await cl.Message(content = welcome_message).send()
 
     retriever, langchain_chroma, collection = load_and_create_embeddings()
-    llm = await load_llm()
+    llm = load_llm()
     cl.user_session.set("retriever", retriever)
     cl.user_session.set("langchain_chroma", langchain_chroma)
     cl.user_session.set("llm", llm)
     cl.user_session.set("collection", collection)
     
-    
-    await cl.Message(content = langchain_chroma._collection.count()).send()
-
     
 
 @cl.on_message
@@ -27,18 +24,18 @@ async def on_message(message: cl.Message):
     user_question = message.content
 
     # Process the legal question:
-    answer = await get_legal_answer(user_question)
+    answer = get_legal_answer(user_question)
      
     # # Send the answer:
     await cl.Message(content=answer).send()
 
 
-@cl.step(type = 'tool')
-async def load_temporary_file(user_question, collection, langchain_chroma):
+@cl.step()
+def load_temporary_file(user_question, collection, langchain_chroma):
 
-    crawl_data(user_question,max_page = 5)
+    crawl_data(user_question,max_page = 3)
 
-    raw_documents = TextLoader('temporary_data.txt').load()
+    raw_documents = TextLoader('data/temporal_data.txt').load()
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1024, chunk_overlap = 100)
 
@@ -53,24 +50,24 @@ async def load_temporary_file(user_question, collection, langchain_chroma):
 
    
     last_id = langchain_chroma._collection.count()
+
+    #remove temporal data file
+    os.remove('data/temporal_data.txt')
     return current_id, last_id
 
    
     
-@cl.step(type = 'tool')
-async def get_legal_answer(user_question):
+@cl.step()
+def get_legal_answer(user_question):
     llm = cl.user_session.get("llm")
     retriever = cl.user_session.get("retriever")
     collection = cl.user_session.get("collection")
     langchain_chroma = cl.user_session.get("langchain_chroma") 
 
-    answer = await query(user_question,llm,retriever)
+    answer = query(user_question,llm,retriever)
     if answer == "Tôi không biết.":
-        current_id, last_id = await load_temporary_file(user_question, collection, langchain_chroma)
-        answer = await query(user_question,llm,retriever,temporary = True,collection = collection,id = [current_id, last_id])
-        await cl.Message(content = langchain_chroma._collection.count()).send()
-
-
+        current_id, last_id = load_temporary_file(user_question, collection, langchain_chroma)
+        answer = query(user_question,llm,retriever,temporary = True,collection = collection,id = [current_id, last_id])
 
     return answer
 

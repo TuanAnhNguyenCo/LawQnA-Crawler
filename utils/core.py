@@ -1,25 +1,19 @@
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import chromadb
-from transformers import BitsAndBytesConfig
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain_huggingface.llms import HuggingFacePipeline
-from langchain import hub
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain import hub
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import os
-from chromadb.config import Settings
 from dotenv import load_dotenv
-
+import cohere
 load_dotenv()
+
+
+COHERE_API_KEY = os.environ['COHERE_API_KEY']
+co = cohere.Client(COHERE_API_KEY)
 
 class CustomOpenAIEmbeddings(OpenAIEmbeddings):
     
@@ -32,7 +26,7 @@ class CustomOpenAIEmbeddings(OpenAIEmbeddings):
     def __call__(self, input):
         return self._embed_documents(input)    # <--- get the embeddings
 
-def load_and_create_embeddings(file_url = "law.txt",top_k = 3,
+def load_and_create_embeddings(file_url = "data/law.txt",top_k = 6,
                             search_type = 'similarity',collection_name = "Law_db"):
 
     raw_documents = TextLoader(file_url).load()
@@ -68,18 +62,17 @@ def load_and_create_embeddings(file_url = "law.txt",top_k = 3,
     return retriever, langchain_chroma, collection
 
 
-async def load_llm(model_name = "gpt-4o-mini-2024-07-18"):
+def load_llm(model_name = "gpt-4o-mini-2024-07-18"):
     llm = ChatOpenAI(model=model_name)
     return llm
 
-async def query(USER_QUESTION,llm,retriever,temporary = False,collection = None,id = None):
+def query(USER_QUESTION,llm,retriever,temporary = False,collection = None,id = None):
     template =  """
                 Bạn là trợ lý có trên 20 năm kinh nghiệm cho các nhiệm vụ trả lời câu hỏi dựa trên ngữ cảnh tôi cung cấp.
                 Sử dụng các đoạn ngữ cảnh được cung cấp sau đây để trả lời câu hỏi. 
                 Nếu ngữ cảnh tôi cung cấp không có đủ thông tin để trả lời thì hãy trả lời Tôi không biết thay vì cố gắng trả lời sai. 
-                Trả lời ngắn gọn dễ hiểu tối đa là 3 dòng.
-                Chú ý: Nếu câu hỏi không liên quan đến luật pháp thì trả lời Vui lòng hỏi những câu liên quan đến luật.
-            
+                Trả lời ngắn gọn dễ hiểu không dài dòng lan man.
+               
                 Ngữ cảnh: {context}
                 Câu hỏi: {question}
                 Câu trả lời:
@@ -87,16 +80,30 @@ async def query(USER_QUESTION,llm,retriever,temporary = False,collection = None,
 
     prompt = ChatPromptTemplate.from_template(template)
 
+    def re_rank(docs):
+        docs = [
+            doc.page_content for doc in docs
+        ]
+
+        response = co.rerank(
+            model="rerank-multilingual-v3.0",
+            query= USER_QUESTION,
+            documents=docs,
+            top_n=3,
+        )
+        docs = [docs[i.index] for i in response.results]
+        sentences = "\n".join(docs)
+        return docs, sentences
 
     def format_docs (docs) :
-        sentences = "\n".join(doc.page_content for doc in docs)
+        docs, sentences = re_rank(docs)
         if temporary:
             collection.delete(ids = [str(i) for i in range(id[0],id[1]+1)])
             collection.add(
-                documents=[doc.page_content for doc in docs],
+                documents=[doc for doc in docs],
                 ids = [str(i+id[0]) for i in range(len(docs))],
                 )
-            with open('law.txt','a+') as f:
+            with open('data/law.txt','a+') as f:
                 f.write(sentences+"\n\n")
         return sentences
 

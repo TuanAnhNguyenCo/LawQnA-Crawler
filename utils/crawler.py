@@ -3,8 +3,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from serpapi import GoogleSearch
 import re
+import os
 
-api_key = "c4401cac8b81c69e25c103b98d3c9ea1631d1ed46f82ca9f06290d880849b121" 
+SERPAPI_KEY = os.environ['SERPAPI_KEY']
 
 def get_webpage_info(url):
    
@@ -28,7 +29,7 @@ def get_webpage_info(url):
 def search_google(query):
     params = {
         "q": query,  # Truy vấn tìm kiếm
-        "api_key": api_key  # API key của bạn
+        "api_key": SERPAPI_KEY  # API key của bạn
     }
 
     search = GoogleSearch(params)
@@ -48,7 +49,7 @@ def crawl_data(query,max_page = 5):
 
     # save data to temporary_file.txt
     if len(text) != 0:
-        with open('temporary_data.txt','w+') as f:
+        with open('data/temporal_data.txt','w+') as f:
             f.write(" ".join(text))
 
 
