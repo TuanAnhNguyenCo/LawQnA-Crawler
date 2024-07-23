@@ -26,4 +26,18 @@ The system leverages a combination of cutting-edge technologies:
 
 ![Pipeline](pipeline.png)
 
+# Running
+1. Install required libraries: ```pip install -r requirements.txt```
+2. Create .env file and set up API keys:
+   ```
+      OPENAI_API_KEY=your_openai_api_key
+      COHERE_API_KEY=your_cohere_api_key
+      SERPAPI_KEY=your_serpapi_key
+     ```
+3. Run Chainlit: ```chainlit run app.py --host 0.0.0.0 --port 1688 &> content/logs.txt```
+
+# Demo
+
+![Demo](Demo.png)
+
 
