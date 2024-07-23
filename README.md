@@ -24,7 +24,7 @@ The system leverages a combination of cutting-edge technologies:
 9. Redundant information from crawling is removed from the database and only save top-k chunks most relevant to the query.
 10. Re-ranked results are passed to LLM and the final output is generated and presented to the user.
 
-![Pipeline](pipeline.png)
+![Pipeline](images/pipeline.png)
 
 # Running
 1. Install required libraries: ```pip install -r requirements.txt```
@@ -38,6 +38,6 @@ The system leverages a combination of cutting-edge technologies:
 
 # Demo
 
-![Demo](Demo.png)
+![Demo](images/demo.png)
 
 
